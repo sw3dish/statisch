@@ -1,9 +1,12 @@
-defmodule Grossglockner do
+defmodule Statisch do
   def main(_argv) do
     gather_markdown_files("./content")
     |> Enum.map(&split_file/1)
     |> Enum.map(&parse_metadata/1)
     |> Enum.map(&transform_contents/1)
+    |> IO.inspect()
+    # inject into template
+    # write to file
   end
 
   def gather_markdown_files(path) do
