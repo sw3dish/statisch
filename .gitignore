@@ -27,3 +27,6 @@ grossglockner-*.tar
 
 # Content files
 /content
+
+# Ignore the build binary
+grossglockner
