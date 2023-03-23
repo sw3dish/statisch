@@ -48,7 +48,7 @@ defmodule Statisch do
   # returns either {:ok, path, {metadata, contents}}
   # or {:error, path, reason}
   def split_file({:ok, path, contents}) do
-    split_contents <- String.split(contents, "---%%%---")
+    split_contents = String.split(contents, "---%%%---")
 
     case String.length(split_contents) do
       3 ->
