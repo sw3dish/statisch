@@ -23,6 +23,7 @@ defmodule Statisch.MixProject do
   defp deps do
     [
       {:earmark, "~> 1.4.37"},
+      {:toml, "~> 0.7"}
     ]
   end
 end

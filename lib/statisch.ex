@@ -62,9 +62,9 @@ defmodule Statisch do
   def split_file(error = {:error, _, _}), do: error
 
   def parse_metadata({:ok, path, {metadata, contents}}) do
-    case JSON.decode(metadata) do
-      {:ok, json_decoded_metadata} ->
-        {:ok, path, {json_decoded_metadata, contents}}
+    case TOML.decode(metadata) do
+      {:ok, toml_decoded_metadata} ->
+        {:ok, path, {toml_decoded_metadata, contents}}
 
       {:error, reason} ->
         {:error, path, reason}
