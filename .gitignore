@@ -20,7 +20,7 @@ erl_crash.dump
 *.ez
 
 # Ignore package tarball (built via "mix hex.build").
-grossglockner-*.tar
+statisch-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
@@ -28,5 +28,10 @@ grossglockner-*.tar
 # Content files
 /content
 
+# Output files
+/output
+
+# Template files
+/templates
 # Ignore the build binary
-grossglockner
+statisch
