@@ -1,4 +1,6 @@
 defmodule Statisch do
+  alias Statisch.Metadata
+
   def main(_argv) do
     gather_markdown_files("./content")
     |> Enum.map(&read_file/1)
@@ -64,8 +66,14 @@ defmodule Statisch do
 
   def parse_metadata({:ok, path, {metadata, contents}}) do
     case Toml.decode(metadata) do
-      {:ok, toml_decoded_metadata} ->
-        {:ok, path, {toml_decoded_metadata, contents}}
+      {:ok, decoded_metadata} ->
+        try do
+          new_metadata = Metadata.from_map(decoded_metadata)
+          {:ok, path, {new_metadata, contents}}
+        rescue
+          ArgumentError ->
+            {:error, path, "Required metadata fields missing"}
+        end
 
       {:error, reason} ->
         {:error, path, reason}
