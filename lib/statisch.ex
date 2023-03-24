@@ -2,6 +2,7 @@ defmodule Statisch do
   alias Statisch.Metadata
 
   @content_dir "./content"
+  @template_dir "./templates"
 
   def main(_argv) do
     gather_markdown_files(@content_dir)
@@ -9,10 +10,11 @@ defmodule Statisch do
     |> Enum.map(&split_file/1)
     |> Enum.map(&parse_metadata/1)
     |> Enum.map(&transform_contents/1)
-    |> IO.inspect()
-
+    |> Enum.map_reduce(%{}, &inject_into_template/2)
+    |> drop_cache()
     # inject into template
     # write to file
+    |> IO.inspect()
   end
 
   def gather_markdown_files(path) do
@@ -97,4 +99,31 @@ defmodule Statisch do
   end
 
   def transform_contents(error = {:error, _, _}), do: error
+
+  def inject_into_template({:ok, path, {metadata, contents}}, cache) do
+    template_name = metadata.template
+    case put_into_cache(cache, template_name) do
+      {:ok, cache} ->
+        doc = EEx.eval_string(cache[template_name], body: contents, title: metadata.title)
+        {{:ok, path, {metadata, doc}}, cache}
+      {:error, _reason} ->
+        {{:error, path, "Could not open #{template_name}.eex for reading!"}, cache}
+    end
+  end
+
+  def inject_into_template(error = {:error, _, _}, cache), do: {error, cache}
+
+  def put_into_cache(cache, template_name) do
+    template_path = Path.join(@template_dir, "#{template_name}.eex")
+    case File.read(template_path) do
+      {:ok, contents} ->
+        cache = Map.put(cache, template_name, contents)
+        {:ok, cache}
+      error -> error
+    end
+  end
+
+  def drop_cache({results, _cache = %{}}) do
+    results
+  end
 end
