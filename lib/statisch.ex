@@ -1,8 +1,10 @@
 defmodule Statisch do
   alias Statisch.Metadata
 
+  @content_dir "./content"
+
   def main(_argv) do
-    gather_markdown_files("./content")
+    gather_markdown_files(@content_dir)
     |> Enum.map(&read_file/1)
     |> Enum.map(&split_file/1)
     |> Enum.map(&parse_metadata/1)
