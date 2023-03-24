@@ -65,14 +65,16 @@ defmodule Statisch do
   def split_file(error = {:error, _, _}), do: error
 
   def parse_metadata({:ok, path, {metadata, contents}}) do
-    case Toml.decode(metadata) do
+    case Toml.decode(metadata, keys: :atoms) do
       {:ok, decoded_metadata} ->
         try do
-          new_metadata = Metadata.from_map(decoded_metadata)
+          new_metadata = struct!(Metadata, decoded_metadata)
           {:ok, path, {new_metadata, contents}}
         rescue
           ArgumentError ->
-            {:error, path, "Required metadata fields missing"}
+            missing_fields = Metadata.required_keys -- Map.keys(decoded_metadata)
+            missing_fields_string = Enum.map_join(missing_fields, ", ", &Atom.to_string/1)
+            {:error, path, "Required metadata fields missing: #{missing_fields_string}"}
         end
 
       {:error, reason} ->
