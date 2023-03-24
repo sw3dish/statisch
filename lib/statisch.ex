@@ -50,9 +50,10 @@ defmodule Statisch do
   def split_file({:ok, path, contents}) do
     split_contents = String.split(contents, "---%%%---")
 
-    case String.length(split_contents) do
+    case length(split_contents) do
       3 ->
-        {:ok, path, {split_contents[1], split_contents[2]}}
+        [_, metadata, contents] = split_contents
+        {:ok, path, {metadata, contents}}
 
       _ ->
         {:error, path, "No metadata found!"}
@@ -62,7 +63,7 @@ defmodule Statisch do
   def split_file(error = {:error, _, _}), do: error
 
   def parse_metadata({:ok, path, {metadata, contents}}) do
-    case TOML.decode(metadata) do
+    case Toml.decode(metadata) do
       {:ok, toml_decoded_metadata} ->
         {:ok, path, {toml_decoded_metadata, contents}}
 
