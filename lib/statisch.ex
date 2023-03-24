@@ -2,6 +2,7 @@ defmodule Statisch do
   alias Statisch.Metadata
 
   @content_dir "./content"
+  @output_dir "./output"
   @template_dir "./templates"
 
   def main(_argv) do
@@ -12,6 +13,7 @@ defmodule Statisch do
     |> Enum.map(&transform_contents/1)
     |> Enum.map_reduce(%{}, &inject_into_template/2)
     |> drop_cache()
+    |> Enum.map(&write_file/1)
     # inject into template
     # write to file
     |> IO.inspect()
@@ -71,6 +73,7 @@ defmodule Statisch do
   def parse_metadata({:ok, path, {metadata, contents}}) do
     case Toml.decode(metadata, keys: :atoms) do
       {:ok, decoded_metadata} ->
+        # Add any default keys to Metadata
         try do
           new_metadata = struct!(Metadata, decoded_metadata)
           {:ok, path, {new_metadata, contents}}
@@ -126,4 +129,21 @@ defmodule Statisch do
   def drop_cache({results, _cache = %{}}) do
     results
   end
+
+  def write_file({:ok, path, {metadata, contents}}) do
+    trimmed_path = path
+                   |> String.trim_leading(@content_dir)
+                   |> String.trim_trailing(".md")
+    output_path = Path.join(@output_dir, "#{trimmed_path}.html")
+    with :ok <- File.mkdir_p(Path.dirname(output_path)),
+         :ok <- File.write(output_path, contents)
+    do
+      {:ok, path, {metadata, contents}}
+    else
+      {:error, _reason} ->
+        {:error, path, "Could not write to file #{output_path}"}
+    end
+
+  end
+  def write_file(error = {:error, _, _}), do: error
 end
