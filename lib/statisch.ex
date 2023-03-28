@@ -107,7 +107,10 @@ defmodule Statisch do
     template_name = metadata.template
     case put_into_cache(cache, template_name) do
       {:ok, cache} ->
-        doc = EEx.eval_string(cache[template_name], body: contents, title: metadata.title)
+        doc = EEx.eval_string(cache[template_name], assigns: [
+          body: contents,
+          title: metadata.title,
+        ])
         {{:ok, path, {metadata, doc}}, cache}
       {:error, _reason} ->
         {{:error, path, "Could not open #{template_name}.eex for reading!"}, cache}
