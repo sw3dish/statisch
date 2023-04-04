@@ -34,4 +34,4 @@ statisch-*.tar
 # Template files
 /templates
 # Ignore the build binary
-statisch
+/statisch
