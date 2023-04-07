@@ -1,7 +1,9 @@
 defmodule Statisch.Metadata do
-  @enforce_keys [:title]
+  @enforce_keys [:title, :description, :published_date]
   defstruct [
     :title,
+    :description,
+    :published_date,
     template: "post"
   ]
 

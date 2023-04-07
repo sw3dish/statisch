@@ -111,7 +111,9 @@ defmodule Statisch do
       {:ok, cache} ->
         assigns = %{
           body: contents,
-          title: metadata.title
+          title: metadata.title,
+          description: metadata.description,
+          published_date: metadata.published_date,
         }
 
         # render the inner content
@@ -130,7 +132,7 @@ defmodule Statisch do
   def inject_into_template(error = {:error, _, _}, cache), do: {error, cache}
 
   def put_into_cache(cache, template_name) do
-    template_path = Path.join(@template_dir, "#{template_name}.eex")
+    template_path = Path.join(@template_dir, "#{template_name}.html.eex")
 
     case Map.get(cache, template_name) do
       # if we can't find the template in the cache, add it
