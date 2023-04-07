@@ -7,6 +7,8 @@ defmodule Statisch do
   @base_layout_path "./templates/layouts/base.html.eex"
 
   def main(_argv) do
+    File.rm_rf!(@output_dir)
+    File.mkdir!(@output_dir)
     gather_markdown_files(@content_dir)
     |> Enum.map(&read_file/1)
     |> Enum.map(&split_file/1)
@@ -15,9 +17,7 @@ defmodule Statisch do
     |> Enum.map_reduce(initialize_template_cache(), &inject_into_template/2)
     |> drop_cache()
     |> Enum.map(&write_file/1)
-    # inject into template
-    # write to file
-    |> IO.inspect()
+    |> Enum.map(&output_stats/1)
   end
 
   def gather_markdown_files(path) do
@@ -172,6 +172,15 @@ defmodule Statisch do
   end
 
   def write_file(error = {:error, _, _}), do: error
+
+  def output_stats({:ok, path, _}) do
+    IO.puts("Successfully wrote #{path}")
+  end
+
+  def output_stats({:error, path, reason}) do
+    IO.puts("Could not write #{path}: #{reason}")
+  end
+
 
   def initialize_template_cache() do
     base = File.read!(@base_layout_path)
