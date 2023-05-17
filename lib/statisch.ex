@@ -2,6 +2,7 @@ defmodule Statisch do
   alias Statisch.Metadata
 
   @content_dir "./content"
+  @pages_dir "./pages"
   @output_dir "./output"
   @template_dir "./templates"
   @base_layout_path "./templates/layouts/base.html.eex"
@@ -9,7 +10,8 @@ defmodule Statisch do
   def main(_argv) do
     File.rm_rf!(@output_dir)
     File.mkdir!(@output_dir)
-    gather_markdown_files(@content_dir)
+
+    gather_files(@content_dir, ".md")
     |> Enum.map(&read_file/1)
     |> Enum.map(&split_file/1)
     |> Enum.map(&parse_metadata/1)
@@ -18,13 +20,22 @@ defmodule Statisch do
     |> drop_cache()
     |> Enum.map(&write_file/1)
     |> Enum.map(&output_stats/1)
+
+    gather_files(@pages_dir, ".eex")
+    |> Enum.map(&read_file/1)
+    |> Enum.map(&split_file/1)
+    |> Enum.map(&parse_metadata/1)
+    |> Enum.map_reduce(initialize_template_cache(), &inject_into_template/2)
+    |> drop_cache()
+    |> Enum.map(&write_file/1)
+    |> Enum.map(&output_stats/1)
   end
 
-  def gather_markdown_files(path) do
+  def gather_files(path, ext) do
     cond do
       File.regular?(path) ->
         case Path.extname(path) do
-          ".md" -> [path]
+          ^ext -> [path]
           _ -> []
         end
 
@@ -33,7 +44,7 @@ defmodule Statisch do
           {:ok, paths} ->
             paths
             |> Enum.map(&Path.join(path, &1))
-            |> Enum.flat_map(&gather_markdown_files/1)
+            |> Enum.flat_map(&gather_files(&1, ext))
 
           {:error, reason} ->
             IO.puts("Could not build #{path}: #{reason}")
@@ -114,6 +125,7 @@ defmodule Statisch do
           title: metadata.title,
           description: metadata.description,
           published_date: metadata.published_date,
+          hide_footer: metadata.hide_footer,
         }
 
         # render the inner content
@@ -160,7 +172,7 @@ defmodule Statisch do
     trimmed_path =
       path
       |> String.trim_leading(@content_dir)
-      |> String.trim_trailing(".md")
+      |> String.trim_trailing(Path.extname(path))
 
     output_path = Path.join(@output_dir, "#{trimmed_path}.html")
 

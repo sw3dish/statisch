@@ -4,7 +4,8 @@ defmodule Statisch.Metadata do
     :title,
     :description,
     :published_date,
-    template: "post"
+    template: "post",
+    hide_footer: false
   ]
 
   def required_keys, do: @enforce_keys
