@@ -2,15 +2,16 @@ defmodule Statisch do
   alias Statisch.Metadata
 
   @content_dir "./content"
-  @pages_dir "./pages"
   @output_dir "./output"
   @template_dir "./templates"
   @base_layout_path "./templates/layouts/base.html.eex"
 
-  def main(_argv) do
+  def clear_output_dirs() do
     File.rm_rf!(@output_dir)
     File.mkdir!(@output_dir)
+  end
 
+  def main(_argv) do
     gather_files(@content_dir, ".md")
     |> Enum.map(&read_file/1)
     |> Enum.map(&split_file/1)
@@ -21,7 +22,7 @@ defmodule Statisch do
     |> Enum.map(&write_file/1)
     |> Enum.map(&output_stats/1)
 
-    gather_files(@pages_dir, ".eex")
+    gather_files(@content_dir, ".eex")
     |> Enum.map(&read_file/1)
     |> Enum.map(&split_file/1)
     |> Enum.map(&parse_metadata/1)
@@ -173,6 +174,8 @@ defmodule Statisch do
       path
       |> String.trim_leading(@content_dir)
       |> String.trim_trailing(Path.extname(path))
+      # handle double extensions
+      |> String.trim_trailing(".html")
 
     output_path = Path.join(@output_dir, "#{trimmed_path}.html")
 
