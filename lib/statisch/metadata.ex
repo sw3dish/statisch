@@ -5,8 +5,10 @@ defmodule Statisch.Metadata do
   embedded_schema do
     field(:title, :string)
     field(:description, :string)
-    field(:published_date, :naive_datetime)
+    field(:published_date, :string)
     field(:template, Ecto.Enum, values: [:none, :page, :post], default: :post)
+    field(:hide_footer, :boolean, default: false)
+    field(:draft, :boolean, default: false)
   end
 
   def changeset(metadata, params \\ %{})
@@ -17,8 +19,8 @@ defmodule Statisch.Metadata do
 
   def changeset(metadata, params) do
     metadata
-    |> cast(params, [:title, :description, :published_date, :template])
-    |> validate_required([:title, :description, :published_date, :template])
+    |> cast(params, [:title, :description, :published_date, :template, :draft, :hide_footer])
+    |> validate_required([:title, :description, :published_date, :template, :draft, :hide_footer])
   end
 
   def parse_from_string(string) do
