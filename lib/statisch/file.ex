@@ -81,7 +81,11 @@ defmodule Statisch.File do
     #   foo/bar/baz/quuz
     path_regex = ~r|#{input_dir}\/(.*?)(?:\.(?:.*))+|
     [_full_match, output_path] = Regex.run(path_regex, path)
-    # For pretty urls :)
-    {:ok, "#{output_dir}/#{output_path}/index.html"}
+    case output_path do
+      # Handle root index.html 
+      "index" -> {:ok, "#{output_dir}/index.html"}
+      # For pretty urls :)
+      _ -> {:ok, "#{output_dir}/#{output_path}/index.html"}
+    end
   end
 end
