@@ -3,6 +3,7 @@ defmodule Statisch do
     File,
     FileSystem,
     Metadata,
+    Results,
     Template,
     TemplateCache,
     Transformer
@@ -119,8 +120,8 @@ defmodule Statisch do
 
     with {:ok, paths} <- FileSystem.gather_files(@input_dir),
          {:ok, results} <- process_files(paths),
-         results <- split_results(results) do
-      report_stats(results)
+         results <- Results.split(results) do
+      Results.report(results)
     end
   end
 end
