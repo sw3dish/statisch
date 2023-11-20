@@ -90,6 +90,7 @@ defmodule Statisch do
         end,
         {:desc, Date}
       )
+
     process_file(@posts_page, %{posts: posts})
     :ok
   end

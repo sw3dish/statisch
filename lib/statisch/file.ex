@@ -46,19 +46,22 @@ defmodule Statisch.File do
     end
   end
 
-  def build_contents(%__MODULE__{
-        metadata: %Metadata{template: template_key} = metadata,
-        contents: contents
-      }, extra_assigns) do
+  def build_contents(
+        %__MODULE__{
+          metadata: %Metadata{template: template_key} = metadata,
+          contents: contents
+        },
+        extra_assigns
+      ) do
     {^template_key, template} = Template.get_template!(template_key)
     {:base, base_template} = Template.get_template!(:base)
 
     assigns = Map.merge(extra_assigns, Map.from_struct(metadata))
-    
+
     # render the inner content
     body = EEx.eval_string(contents, assigns: assigns)
     # render the child template
-    assigns = Map.put(assigns, :body,  body)
+    assigns = Map.put(assigns, :body, body)
     inner_content = EEx.eval_string(template, assigns: assigns)
     # place it into the global layout
     assigns = Map.put(assigns, :inner_content, inner_content)
@@ -83,7 +86,7 @@ defmodule Statisch.File do
     [_full_match, output_path] = Regex.run(path_regex, path)
 
     case output_path do
-      # Handle root index.html 
+      # Handle root index.html
       "index" -> {:ok, "#{output_dir}/index.html"}
       # For pretty urls :)
       _ -> {:ok, "#{output_dir}/#{output_path}/index.html"}
