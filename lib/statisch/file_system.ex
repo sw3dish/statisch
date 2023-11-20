@@ -8,24 +8,28 @@ defmodule Statisch.FileSystem do
     File.rmdir!(dir)
   end
 
-  def gather_files(path) do
+  def gather_files(path, excluded_files \\ []) do
     try do
-      {:ok, __MODULE__.gather_files_fun(path)}
+      {:ok, __MODULE__.gather_files_fun(path, excluded_files)}
     rescue
       e -> {:error, e.message}
     end
   end
 
-  def gather_files_fun(path) do
+  def gather_files_fun(path, excluded_files) do
     cond do
       File.regular?(path) ->
-        [path]
+        if !Enum.member?(excluded_files, path) do
+          [path]
+        else
+          []
+        end
 
       File.dir?(path) ->
         path
         |> File.ls!()
         |> Enum.map(&Path.join(path, &1))
-        |> Enum.flat_map(&gather_files_fun/1)
+        |> Enum.flat_map(&gather_files_fun(&1, excluded_files))
 
       true ->
         []

@@ -8,13 +8,14 @@ defmodule Statisch.File do
 
   embedded_schema do
     field(:path, :string)
+    field(:output_path, :string)
     embeds_one(:metadata, Metadata)
     field(:contents, :binary)
   end
 
   def changeset(file, params \\ %{}) do
     file
-    |> cast(params, [:path, :contents])
+    |> cast(params, [:path, :contents, :output_path])
     |> cast_embed(:metadata, required: true)
     |> validate_required([:metadata, :path])
   end
@@ -48,17 +49,16 @@ defmodule Statisch.File do
   def build_contents(%__MODULE__{
         metadata: %Metadata{template: template_key} = metadata,
         contents: contents
-      }) do
+      }, extra_assigns) do
     {^template_key, template} = Template.get_template!(template_key)
     {:base, base_template} = Template.get_template!(:base)
 
-    assigns = %{
-      body: contents
-    }
-
-    assigns = Map.merge(assigns, Map.from_struct(metadata))
-
+    assigns = Map.merge(extra_assigns, Map.from_struct(metadata))
+    
     # render the inner content
+    body = EEx.eval_string(contents, assigns: assigns)
+    # render the child template
+    assigns = Map.put(assigns, :body,  body)
     inner_content = EEx.eval_string(template, assigns: assigns)
     # place it into the global layout
     assigns = Map.put(assigns, :inner_content, inner_content)
@@ -81,6 +81,7 @@ defmodule Statisch.File do
     #   foo/bar/baz/quuz
     path_regex = ~r|#{input_dir}\/(.*?)(?:\.(?:.*))+|
     [_full_match, output_path] = Regex.run(path_regex, path)
+
     case output_path do
       # Handle root index.html 
       "index" -> {:ok, "#{output_dir}/index.html"}

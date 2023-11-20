@@ -12,7 +12,8 @@ defmodule Statisch do
   @input_dir "./content"
   @output_dir "./output"
   @template_dir "./templates"
-  @base_layout_path "./templates/layouts/base.html.eex"
+  @posts_page "#{@input_dir}/posts.html.eex"
+  @special_files [@posts_page]
 
   def clear_output_dirs() do
     Elixir.File.rm_rf!(@output_dir)
@@ -41,31 +42,28 @@ defmodule Statisch do
     end
   end
 
-  def write_file(%File{path: path} = file) do
-    with {:ok, doc} <- File.build_contents(file),
+  def write_file(%File{path: path} = file, extra_assigns \\ %{}) do
+    with {:ok, doc} <- File.build_contents(file, extra_assigns),
          {:ok, output_path} <- File.get_output_path(file, @input_dir, @output_dir),
          :ok <- Elixir.File.mkdir_p(Path.dirname(output_path)),
-         :ok <- Elixir.File.write(output_path, doc) do
-      {:ok, output_path}
+         :ok <- Elixir.File.write(output_path, doc),
+         {:ok, file} <- File.new(%{file | contents: doc, output_path: output_path}) do
+      {:ok, file}
     else
       {:error, reason} ->
         {:error, "ERROR [writing file] #{path}: #{reason}"}
     end
   end
 
-  def drop_draft(%File{metadata: %Metadata{draft: true}}), do: {:warn, :dropped}
-
-  def drop_draft(%File{metadata: %Metadata{draft: false}} = file), do: {:ok, file}
-
-  def process_file(path) do
-    with {:ok, %File{path: path} = loaded_file} <- load_file(path),
-         {:ok, %File{} = non_draft} <- drop_draft(loaded_file),
-         {:ok, transformed_file} <- transform_file(non_draft),
-         {:ok, output_path} <- write_file(transformed_file) do
-      {:ok, {path, output_path}}
+  def process_file(path, extra_assigns \\ %{}) do
+    with {:ok, %File{metadata: %Metadata{draft: false}} = loaded_file} <- load_file(path),
+         {:ok, %File{} = transformed_file} <- transform_file(loaded_file),
+         {:ok, %File{} = file} <- write_file(transformed_file, extra_assigns) do
+      {:ok, file}
     else
-      {:warn, :dropped} ->
+      {:ok, %File{metadata: %Metadata{draft: true}}} ->
         {:warn, path}
+
       {:error, reason} ->
         {:error, reason}
     end
@@ -76,39 +74,24 @@ defmodule Statisch do
     {:ok, Enum.map(stream, fn {:ok, result} -> result end)}
   end
 
-  def split_results(results) do
-    Enum.reduce(results, {[], [], []}, fn result, {successes, warnings, errors} -> 
-      case result do
-        {:ok, _} ->
-          {[result | successes], warnings, errors}
-        {:warn, _} ->
-          {successes, [result | warnings], errors}
-        {:error, _} ->
-          {successes, warnings, [result | errors]}
-      end
-    end)
-  end
-
-  def report_stats({successes, warnings, errors}) do
-    IO.puts("----------------------------")
-    IO.puts("-         Statisch         -")
-    IO.puts("----------------------------")
-
-    Enum.each(successes, fn {:ok, {input, output}} ->
-      IO.puts("#{input} was written to #{output}")
-    end)
-    
-    IO.puts("----------------------------")
-
-    Enum.each(warnings, fn {:warn, input} ->
-      IO.puts("#{input} was not written due to draft status")
-    end)
-
-    IO.puts("----------------------------")
-
-    Enum.each(errors, fn {:error, message} ->
-      IO.puts(message)
-    end)
+  def create_posts_page({successes, _, _}, output_dir) do
+    # If there are posts under a `posts` directory,
+    # create a page using posts.html.eex
+    # that has a listing of all of them by time published
+    posts =
+      successes
+      |> Enum.map(&elem(&1, 1))
+      |> Enum.filter(fn file ->
+        Regex.match?(~r|#{output_dir}/posts/(.*)|, file.output_path)
+      end)
+      |> Enum.sort_by(
+        fn %File{metadata: %Metadata{published_date: published_date}} ->
+          Date.from_iso8601!(published_date)
+        end,
+        {:desc, Date}
+      )
+    process_file(@posts_page, %{posts: posts})
+    :ok
   end
 
   def main(_argv) do
@@ -118,9 +101,10 @@ defmodule Statisch do
     Template.load_templates!(@template_dir)
     |> Template.cache_templates!()
 
-    with {:ok, paths} <- FileSystem.gather_files(@input_dir),
+    with {:ok, paths} <- FileSystem.gather_files(@input_dir, @special_files),
          {:ok, results} <- process_files(paths),
-         results <- Results.split(results) do
+         results <- Results.split(results),
+         :ok <- create_posts_page(results, @output_dir) do
       Results.report(results)
     end
   end
