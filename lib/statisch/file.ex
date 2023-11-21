@@ -49,7 +49,8 @@ defmodule Statisch.File do
   def build_contents(
         %__MODULE__{
           metadata: %Metadata{template: template_key} = metadata,
-          contents: contents
+          contents: contents,
+          output_path: output_path
         },
         extra_assigns
       ) do
@@ -57,6 +58,7 @@ defmodule Statisch.File do
     {:base, base_template} = Template.get_template!(:base)
 
     assigns = Map.merge(extra_assigns, Map.from_struct(metadata))
+    assigns = Map.put(assigns, :output_path, output_path)
 
     # render the inner content
     body = EEx.eval_string(contents, assigns: assigns)
@@ -69,7 +71,7 @@ defmodule Statisch.File do
     {:ok, doc}
   end
 
-  def get_output_path(%__MODULE__{path: path}, input_dir, output_dir) do
+  def get_output_path(path, input_dir, output_dir) do
     # Extact the path and the file name, but not extension of the file
     # Examples:
     # ./markdown_files/foo.html

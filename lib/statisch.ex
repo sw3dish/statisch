@@ -24,7 +24,9 @@ defmodule Statisch do
     with {:ok, contents} <- Elixir.File.read(path),
          {:ok, {metadata_string, content}} <- File.split_contents(contents),
          {:ok, metadata} <- Metadata.parse_from_string(metadata_string),
-         {:ok, file} <- File.new(%{metadata: metadata, contents: content, path: path}) do
+         {:ok, output_path} <- File.get_output_path(path, @input_dir, @output_dir),
+         {:ok, file} <-
+           File.new(%{metadata: metadata, contents: content, path: path, output_path: output_path}) do
       {:ok, file}
     else
       {:error, reason} ->
@@ -42,12 +44,11 @@ defmodule Statisch do
     end
   end
 
-  def write_file(%File{path: path} = file, extra_assigns \\ %{}) do
+  def write_file(%File{path: path, output_path: output_path} = file, extra_assigns \\ %{}) do
     with {:ok, doc} <- File.build_contents(file, extra_assigns),
-         {:ok, output_path} <- File.get_output_path(file, @input_dir, @output_dir),
          :ok <- Elixir.File.mkdir_p(Path.dirname(output_path)),
          :ok <- Elixir.File.write(output_path, doc),
-         {:ok, file} <- File.new(%{file | contents: doc, output_path: output_path}) do
+         {:ok, file} <- File.new(%{file | contents: doc}) do
       {:ok, file}
     else
       {:error, reason} ->
